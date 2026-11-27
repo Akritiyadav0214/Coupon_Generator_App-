@@ -9,10 +9,15 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
+if (!process.env.MONGODB_URI) {
+  console.error('FATAL: MONGODB_URI environment variable is required.');
+  process.exit(1);
+}
+
 connectDB()
   .then(() => {
-    app.listen(PORT, () => {
-      console.log(`MessMate server running on http://localhost:${PORT}`);
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`MessMate server running on port ${PORT} (${process.env.NODE_ENV || 'development'})`);
     });
   })
   .catch((err) => {

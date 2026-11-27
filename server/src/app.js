@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
@@ -16,18 +17,23 @@ const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
 
+// Trust reverse proxy (Render / Nginx / Cloudflare) for rate limiting & secure cookies
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(helmet());
 
-// CORS configuration
+// CORS configuration (supports comma-separated origins, ignores trailing slashes)
 const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
   .split(',')
-  .map((o) => o.trim());
+  .map((o) => o.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
 
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      const normalized = origin ? origin.replace(/\/+$/, '') : '';
+      if (!origin || allowedOrigins.includes(normalized)) {
         return callback(null, true);
       }
       return callback(new Error('Not allowed by CORS'));
@@ -58,11 +64,23 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 }
 
-app.get('/api/health', (_req, res) => {
+app.get('/', (_req, res) => {
   res.status(200).json({
     success: true,
     service: 'MessMate API',
-    status: 'healthy',
+    college: 'ABESEC Ghaziabad',
+    health: '/api/health',
+  });
+});
+
+app.get('/api/health', (_req, res) => {
+  const dbReady = mongoose.connection.readyState === 1;
+  res.status(dbReady ? 200 : 503).json({
+    success: dbReady,
+    service: 'MessMate API',
+    status: dbReady ? 'healthy' : 'degraded',
+    database: dbReady ? 'connected' : 'disconnected',
+    environment: process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString(),
   });
 });

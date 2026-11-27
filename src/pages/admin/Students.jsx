@@ -3,7 +3,7 @@ import { Search, Users, Eye, UserCheck, UserX } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { adminService } from '../../services/adminService';
 import { useDebounce } from '../../hooks/useDebounce';
-import { Card, EmptyState, Skeleton } from '../../components/common/Card';
+import { Card, EmptyState, ErrorState, Skeleton } from '../../components/common/Card';
 import { Button, Modal, Pagination } from '../../components/common/Controls';
 import StatusBadge from '../../components/common/StatusBadge';
 import { extractErrorMessage, formatDate, formatDateTime } from '../../utils/formatters';
@@ -16,18 +16,23 @@ export default function Students() {
   const debouncedSearch = useDebounce(search, 300);
   const [department, setDepartment] = useState('ALL');
   const [semester, setSemester] = useState('ALL');
+  const [status, setStatus] = useState('ALL');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const [detailModal, setDetailModal] = useState({ open: false, loading: false, data: null });
   const [togglingId, setTogglingId] = useState(null);
 
   const fetchStudents = useCallback(async () => {
+    setLoading(true);
+    setError('');
     try {
       const data = await adminService.getStudents({
         search: debouncedSearch || undefined,
         department,
         semester,
+        status: status === 'ALL' ? undefined : status,
         page,
         limit: 10,
       });
@@ -35,11 +40,11 @@ export default function Students() {
       setDepartments(data.departments || []);
       setPagination(data.pagination || { page: 1, totalPages: 1, total: 0 });
     } catch (err) {
-      toast.error(extractErrorMessage(err, 'Failed to load students'));
+      setError(extractErrorMessage(err, 'Failed to load students'));
     } finally {
       setLoading(false);
     }
-  }, [debouncedSearch, department, semester, page]);
+  }, [debouncedSearch, department, semester, status, page]);
 
   useEffect(() => {
     Promise.resolve().then(fetchStudents);
@@ -91,7 +96,7 @@ export default function Students() {
       </div>
 
       <Card padding="p-5">
-        <div className="mb-5 grid gap-3 md:grid-cols-4">
+        <div className="mb-5 grid gap-3 md:grid-cols-5">
           <div className="relative md:col-span-2">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
@@ -137,6 +142,19 @@ export default function Students() {
               </option>
             ))}
           </select>
+
+          <select
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-[#059669] focus:outline-none"
+          >
+            <option value="ALL">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
         </div>
 
         {loading ? (
@@ -145,6 +163,8 @@ export default function Students() {
               <Skeleton key={i} className="h-12 w-full" />
             ))}
           </div>
+        ) : error ? (
+          <ErrorState title="Students unavailable" description={error} onRetry={fetchStudents} />
         ) : students.length === 0 ? (
           <EmptyState
             icon={Users}

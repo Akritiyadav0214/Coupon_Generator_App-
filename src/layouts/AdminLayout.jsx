@@ -24,7 +24,7 @@ const ADMIN_NAV = [
   { to: '/admin/coupons', label: 'Coupons', icon: Ticket },
   { to: '/admin/students', label: 'Students', icon: Users },
   { to: '/admin/menu', label: 'Menu Management', icon: UtensilsCrossed },
-  { to: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+  { to: '/admin/analytics', label: 'Reports', icon: BarChart3 },
 ];
 
 export default function AdminLayout() {

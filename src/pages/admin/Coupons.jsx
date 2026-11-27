@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { adminService } from '../../services/adminService';
 import { couponService } from '../../services/couponService';
 import { useDebounce } from '../../hooks/useDebounce';
-import { Card, EmptyState, Skeleton } from '../../components/common/Card';
+import { Card, EmptyState, ErrorState, Skeleton } from '../../components/common/Card';
 import { Button, Modal, Pagination } from '../../components/common/Controls';
 import StatusBadge from '../../components/common/StatusBadge';
 import { extractErrorMessage, formatDate, formatDateTime } from '../../utils/formatters';
@@ -18,10 +18,13 @@ export default function Coupons() {
   const [date, setDate] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [selected, setSelected] = useState(null);
   const [redeeming, setRedeeming] = useState(false);
 
   const fetchCoupons = useCallback(async () => {
+    setLoading(true);
+    setError('');
     try {
       const data = await adminService.getCoupons({
         search: debouncedSearch || undefined,
@@ -33,7 +36,7 @@ export default function Coupons() {
       setCoupons(data.coupons || []);
       setPagination(data.pagination || { page: 1, totalPages: 1, total: 0 });
     } catch (err) {
-      toast.error(extractErrorMessage(err, 'Failed to load coupons'));
+      setError(extractErrorMessage(err, 'Failed to load coupons'));
     } finally {
       setLoading(false);
     }
@@ -130,6 +133,8 @@ export default function Coupons() {
               <Skeleton key={i} className="h-12 w-full" />
             ))}
           </div>
+        ) : error ? (
+          <ErrorState title="Coupons unavailable" description={error} onRetry={fetchCoupons} />
         ) : coupons.length === 0 ? (
           <EmptyState
             icon={Ticket}

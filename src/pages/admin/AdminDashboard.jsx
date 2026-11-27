@@ -21,9 +21,8 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import toast from 'react-hot-toast';
 import { adminService } from '../../services/adminService';
-import { Card, EmptyState, Skeleton, StatCard } from '../../components/common/Card';
+import { Card, EmptyState, ErrorState, Skeleton, StatCard } from '../../components/common/Card';
 import { Button } from '../../components/common/Controls';
 import StatusBadge from '../../components/common/StatusBadge';
 import { extractErrorMessage, formatDate, formatRelativeTime } from '../../utils/formatters';
@@ -33,13 +32,16 @@ const PIE_COLORS = ['#059669', '#D97706', '#DC2626'];
 export default function AdminDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    setError('');
     try {
       const res = await adminService.getDashboard();
       setData(res);
     } catch (err) {
-      toast.error(extractErrorMessage(err, 'Failed to load admin overview'));
+      setError(extractErrorMessage(err, 'Failed to load admin overview'));
     } finally {
       setLoading(false);
     }
@@ -61,6 +63,10 @@ export default function AdminDashboard() {
         <Skeleton className="h-80" />
       </div>
     );
+  }
+
+  if (error) {
+    return <ErrorState title="Dashboard unavailable" description={error} onRetry={loadDashboard} />;
   }
 
   const stats = data?.stats || {};

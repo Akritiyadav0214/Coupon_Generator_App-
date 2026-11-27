@@ -11,23 +11,25 @@ import {
   LineChart,
   Line,
 } from 'recharts';
-import toast from 'react-hot-toast';
 import { BarChart3, CheckCircle2, Percent, Ticket } from 'lucide-react';
 import { adminService } from '../../services/adminService';
-import { Card, EmptyState, Skeleton, StatCard } from '../../components/common/Card';
+import { Card, EmptyState, ErrorState, Skeleton, StatCard } from '../../components/common/Card';
 import { extractErrorMessage } from '../../utils/formatters';
 
 export default function Analytics() {
   const [days, setDays] = useState(14);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const fetchAnalytics = useCallback(async () => {
+    setLoading(true);
+    setError('');
     try {
       const res = await adminService.getAnalytics(days);
       setData(res);
     } catch (err) {
-      toast.error(extractErrorMessage(err, 'Failed to load analytics'));
+      setError(extractErrorMessage(err, 'Failed to load analytics'));
     } finally {
       setLoading(false);
     }
@@ -51,6 +53,10 @@ export default function Analytics() {
     );
   }
 
+  if (error) {
+    return <ErrorState title="Reports unavailable" description={error} onRetry={fetchAnalytics} />;
+  }
+
   const summary = data?.summary || {};
   const dailySeries = data?.dailySeries || [];
   const departmentStats = data?.departmentStats || [];
@@ -60,7 +66,7 @@ export default function Analytics() {
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="font-display text-2xl font-bold text-slate-900">Mess Analytics</h1>
+          <h1 className="font-display text-2xl font-bold text-slate-900">Reports &amp; Analytics</h1>
           <p className="mt-1 text-sm text-slate-500">
             Utilization trends, redemption rates, and department participation from MongoDB.
           </p>

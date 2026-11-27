@@ -29,11 +29,25 @@ const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
   .map((o) => o.trim().replace(/\/+$/, ''))
   .filter(Boolean);
 
+const isAllowedDevelopmentOrigin = (origin) => {
+  if (process.env.NODE_ENV === 'production') return false;
+
+  try {
+    const url = new URL(origin);
+    return (
+      url.protocol === 'http:' &&
+      ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+    );
+  } catch {
+    return false;
+  }
+};
+
 app.use(
   cors({
     origin(origin, callback) {
       const normalized = origin ? origin.replace(/\/+$/, '') : '';
-      if (!origin || allowedOrigins.includes(normalized)) {
+      if (!origin || allowedOrigins.includes(normalized) || isAllowedDevelopmentOrigin(origin)) {
         return callback(null, true);
       }
       return callback(new Error('Not allowed by CORS'));

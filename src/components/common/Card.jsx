@@ -64,3 +64,21 @@ export function EmptyState({ icon: Icon, title, description, action }) {
     </div>
   );
 }
+
+export function ErrorState({ title = 'Unable to load data', description, onRetry }) {
+  return (
+    <div className="rounded-xl border border-red-200 bg-red-50 px-6 py-10 text-center">
+      <h3 className="text-sm font-semibold text-red-900">{title}</h3>
+      {description && <p className="mx-auto mt-1 max-w-lg text-sm text-red-700">{description}</p>}
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-4 rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-800 transition-colors hover:bg-red-100"
+        >
+          Try again
+        </button>
+      )}
+    </div>
+  );
+}

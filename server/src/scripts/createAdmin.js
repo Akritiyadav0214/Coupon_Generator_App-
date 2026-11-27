@@ -37,22 +37,24 @@ function promptQuestion(rl, question, mask = false) {
 
 async function run() {
   const args = parseArgs();
+  if (Object.prototype.hasOwnProperty.call(args, 'password')) {
+    throw new Error('Do not pass --password; enter the password at the masked prompt instead.');
+  }
+
   let name = args.name || process.env.ADMIN_NAME;
   let email = args.email || process.env.ADMIN_EMAIL;
-  let password = args.password || process.env.ADMIN_PASSWORD;
+  let password;
 
-  if (!name || !email || !password) {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
-    try {
-      if (!name) name = await promptQuestion(rl, 'Admin Full Name: ');
-      if (!email) email = await promptQuestion(rl, 'Admin Email: ');
-      if (!password) password = await promptQuestion(rl, 'Admin Password (min 8 chars): ', true);
-    } finally {
-      rl.close();
-    }
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  try {
+    if (!name) name = await promptQuestion(rl, 'Admin Full Name: ');
+    if (!email) email = await promptQuestion(rl, 'Admin Email: ');
+    password = await promptQuestion(rl, 'Admin Password (min 8 chars): ', true);
+  } finally {
+    rl.close();
   }
 
   if (!name || !email || !password || password.length < 8) {
@@ -66,6 +68,9 @@ async function run() {
 
   const existing = await User.findOne({ email: normalizedEmail });
   if (existing) {
+    if (existing.role !== 'admin') {
+      throw new Error('That email belongs to a student account. Use a separate admin email.');
+    }
     existing.name = name.trim();
     existing.passwordHash = passwordHash;
     existing.role = 'admin';

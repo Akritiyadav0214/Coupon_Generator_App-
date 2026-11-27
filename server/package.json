@@ -7,6 +7,8 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "seed": "node src/scripts/seed.js",
+    "seed:menus": "node src/scripts/seedMenus.js",
+    "seed:weekly-menu": "node src/scripts/seedWeeklyMenu.js",
     "admin:create": "node src/scripts/createAdmin.js"
   },
   "keywords": [],

@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Coupon = require('../models/Coupon');
 const Menu = require('../models/Menu');
+const WeeklyMenu = require('../models/WeeklyMenu');
 const { AppError, asyncHandler } = require('../utils/errors');
 const { getTodayDateString, getLastNDates } = require('../utils/dateUtils');
 const { syncExpiredCoupons } = require('../services/couponService');
@@ -394,8 +395,20 @@ const getMenus = asyncHandler(async (req, res) => {
   if (req.query.date && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)) {
     filter.date = req.query.date;
   }
+  if (
+    req.query.mealType &&
+    ['Breakfast', 'Lunch', 'Snacks', 'Dinner'].includes(req.query.mealType)
+  ) {
+    filter.mealType = req.query.mealType;
+  }
 
-  const menus = await Menu.find(filter).sort({ date: -1, mealType: 1 }).lean();
+  const menus = await Menu.find(filter).sort({ date: 1 }).lean();
+  const mealOrder = { Breakfast: 1, Lunch: 2, Snacks: 3, Dinner: 4 };
+  menus.sort((a, b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
+    return (mealOrder[a.mealType] || 9) - (mealOrder[b.mealType] || 9);
+  });
+
   res.status(200).json({
     success: true,
     data: { menus },
@@ -407,24 +420,12 @@ const createMenu = asyncHandler(async (req, res) => {
 
   const existing = await Menu.findOne({ date, mealType });
   if (existing) {
-    existing.items = items;
-    existing.startTime = startTime;
-    existing.endTime = endTime;
-    existing.description = description || '';
-    existing.createdBy = req.user._id;
-    await existing.save();
-
-    await notifyActiveStudents({
-      title: `${mealType} Menu Updated`,
-      message: `The ${mealType.toLowerCase()} menu for ${date} (${startTime} - ${endTime}) has been updated.`,
-      type: 'menu',
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: `${mealType} menu for ${date} updated successfully.`,
-      data: { menu: existing },
-    });
+    throw new AppError(
+      `A ${mealType} menu already exists for ${date}. Please edit the existing menu instead.`,
+      409,
+      'DUPLICATE_MENU',
+      { existingMenuId: existing._id }
+    );
   }
 
   const menu = await Menu.create({
@@ -458,8 +459,26 @@ const updateMenu = asyncHandler(async (req, res) => {
     throw new AppError('Menu not found.', 404, 'MENU_NOT_FOUND');
   }
 
-  if (date) menu.date = date;
-  if (mealType) menu.mealType = mealType;
+  const nextDate = date || menu.date;
+  const nextMealType = mealType || menu.mealType;
+
+  if (nextDate !== menu.date || nextMealType !== menu.mealType) {
+    const duplicate = await Menu.findOne({
+      _id: { $ne: menu._id },
+      date: nextDate,
+      mealType: nextMealType,
+    });
+    if (duplicate) {
+      throw new AppError(
+        `A ${nextMealType} menu already exists for ${nextDate}.`,
+        409,
+        'DUPLICATE_MENU'
+      );
+    }
+  }
+
+  menu.date = nextDate;
+  menu.mealType = nextMealType;
   if (items) menu.items = items;
   if (startTime) menu.startTime = startTime;
   if (endTime) menu.endTime = endTime;
@@ -493,6 +512,138 @@ const deleteMenu = asyncHandler(async (req, res) => {
   });
 });
 
+const WEEKDAY_ORDER = {
+  Monday: 1,
+  Tuesday: 2,
+  Wednesday: 3,
+  Thursday: 4,
+  Friday: 5,
+  Saturday: 6,
+  Sunday: 7,
+};
+const WEEKLY_MEAL_ORDER = { Breakfast: 1, Lunch: 2, Snacks: 3, Dinner: 4 };
+
+const getWeeklyMenus = asyncHandler(async (req, res) => {
+  const filter = {};
+  if (req.query.dayOfWeek && WEEKDAY_ORDER[req.query.dayOfWeek]) {
+    filter.dayOfWeek = req.query.dayOfWeek;
+  }
+
+  const menus = await WeeklyMenu.find(filter).lean();
+  menus.sort((a, b) => {
+    const dayDiff = (WEEKDAY_ORDER[a.dayOfWeek] || 9) - (WEEKDAY_ORDER[b.dayOfWeek] || 9);
+    if (dayDiff !== 0) return dayDiff;
+    return (WEEKLY_MEAL_ORDER[a.mealType] || 9) - (WEEKLY_MEAL_ORDER[b.mealType] || 9);
+  });
+
+  res.status(200).json({
+    success: true,
+    data: {
+      weekdays: WeeklyMenu.WEEKDAYS,
+      mealTypes: WeeklyMenu.MEAL_TYPES,
+      menus,
+    },
+  });
+});
+
+const updateWeeklyMenu = asyncHandler(async (req, res) => {
+  const { mealName, items, startTime, endTime, description, isPublished } = req.body;
+
+  const slot = await WeeklyMenu.findById(req.params.id);
+  if (!slot) {
+    throw new AppError('Weekly menu slot not found.', 404, 'MENU_NOT_FOUND');
+  }
+
+  if (mealName !== undefined) slot.mealName = mealName.trim() || slot.mealType;
+  if (items !== undefined) slot.items = items;
+  if (startTime !== undefined) slot.startTime = startTime;
+  if (endTime !== undefined) slot.endTime = endTime;
+  if (description !== undefined) slot.description = description;
+  if (typeof isPublished === 'boolean') slot.isPublished = isPublished;
+  slot.updatedBy = req.user._id;
+
+  await slot.save();
+
+  if (slot.isPublished) {
+    await notifyActiveStudents({
+      title: `${slot.dayOfWeek} ${slot.mealType} Updated`,
+      message: `ABES Boys' Hostel ${slot.dayOfWeek} ${slot.mealType.toLowerCase()} menu (${slot.startTime} - ${slot.endTime}) has been updated.`,
+      type: 'menu',
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: `${slot.dayOfWeek} ${slot.mealType} menu updated successfully.`,
+    data: { menu: slot },
+  });
+});
+
+const upsertWeeklyMenuSlot = asyncHandler(async (req, res) => {
+  const { dayOfWeek, mealType, mealName, items, startTime, endTime, description, isPublished } =
+    req.body;
+
+  const slot = await WeeklyMenu.findOneAndUpdate(
+    { dayOfWeek, mealType },
+    {
+      $set: {
+        dayOfWeek,
+        mealType,
+        mealName: (mealName && mealName.trim()) || `${dayOfWeek} ${mealType}`,
+        items: items || [],
+        startTime,
+        endTime,
+        description: description || '',
+        isPublished: typeof isPublished === 'boolean' ? isPublished : true,
+        updatedBy: req.user._id,
+      },
+    },
+    { upsert: true, returnDocument: 'after', runValidators: true }
+  );
+
+  if (slot.isPublished) {
+    await notifyActiveStudents({
+      title: `${slot.dayOfWeek} ${slot.mealType} Updated`,
+      message: `ABES Boys' Hostel ${slot.dayOfWeek} ${slot.mealType.toLowerCase()} menu has been updated.`,
+      type: 'menu',
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: `${dayOfWeek} ${mealType} menu saved successfully.`,
+    data: { menu: slot },
+  });
+});
+
+const toggleWeeklyMenuPublish = asyncHandler(async (req, res) => {
+  const slot = await WeeklyMenu.findById(req.params.id);
+  if (!slot) {
+    throw new AppError('Weekly menu slot not found.', 404, 'MENU_NOT_FOUND');
+  }
+
+  const nextPublished =
+    typeof req.body?.isPublished === 'boolean' ? req.body.isPublished : !slot.isPublished;
+
+  slot.isPublished = nextPublished;
+  slot.updatedBy = req.user._id;
+  await slot.save();
+
+  if (nextPublished) {
+    await notifyActiveStudents({
+      title: `${slot.dayOfWeek} ${slot.mealType} Published`,
+      message: `The ${slot.dayOfWeek} ${slot.mealType.toLowerCase()} menu is now published.`,
+      type: 'menu',
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: `${slot.dayOfWeek} ${slot.mealType} ${nextPublished ? 'published' : 'unpublished'}.`,
+    data: { menu: slot },
+  });
+});
+
 module.exports = {
   getDashboard,
   getStudents,
@@ -504,4 +655,8 @@ module.exports = {
   createMenu,
   updateMenu,
   deleteMenu,
+  getWeeklyMenus,
+  updateWeeklyMenu,
+  upsertWeeklyMenuSlot,
+  toggleWeeklyMenuPublish,
 };

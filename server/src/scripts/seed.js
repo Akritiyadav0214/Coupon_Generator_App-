@@ -2,7 +2,6 @@ require('dotenv').config();
 const connectDB = require('../config/db');
 const User = require('../models/User');
 const Coupon = require('../models/Coupon');
-const Menu = require('../models/Menu');
 const Notification = require('../models/Notification');
 const {
   getTodayDateString,
@@ -11,6 +10,8 @@ const {
   getLastNDates,
 } = require('../utils/dateUtils');
 const { generateCouponId, generateVerificationToken } = require('../utils/couponCrypto');
+const { seedMenus } = require('./seedMenus');
+const { seedWeeklyMenus } = require('./seedWeeklyMenu');
 
 const SAMPLE_STUDENTS = [
   {
@@ -80,88 +81,16 @@ async function seed() {
 
   const adminUser = await User.findOne({ role: 'admin' });
   const today = getTodayDateString();
-  const tomorrowDate = new Date();
-  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-  const tomorrow = getTodayDateString(tomorrowDate);
 
-  const sampleMenus = [
-    {
-      date: today,
-      mealType: 'Breakfast',
-      startTime: '07:30',
-      endTime: '09:30',
-      description: 'Nutritious morning breakfast served hot in the main dining hall.',
-      items: [
-        { name: 'Masala Poha', category: 'Main Course', description: 'Flattened rice with peanuts and herbs', isVeg: true },
-        { name: 'Idli & Sambar', category: 'Staples', description: 'Steamed rice cakes with lentil stew', isVeg: true },
-        { name: 'Boiled Eggs', category: 'Side Dish', description: 'Optional protein side', isVeg: false },
-        { name: 'Filter Coffee / Tea', category: 'Beverage', description: 'Freshly brewed', isVeg: true },
-      ],
-    },
-    {
-      date: today,
-      mealType: 'Lunch',
-      startTime: '12:00',
-      endTime: '14:30',
-      description: 'Freshly prepared homestyle North & South Indian lunch thali.',
-      items: [
-        { name: 'Dal Tadka', category: 'Main Course', description: 'Yellow lentils tempered with cumin and garlic', isVeg: true },
-        { name: 'Paneer Butter Masala', category: 'Main Course', description: 'Cottage cheese simmered in rich tomato gravy', isVeg: true },
-        { name: 'Steamed Basmati Rice', category: 'Staples', description: 'Fragrant long-grain rice', isVeg: true },
-        { name: 'Whole Wheat Chapati', category: 'Staples', description: 'Soft tandoor-finished flatbreads', isVeg: true },
-        { name: 'Green Garden Salad', category: 'Salad & Extras', description: 'Cucumber, tomato, carrot, and lemon', isVeg: true },
-        { name: 'Mango Pickle & Papad', category: 'Side Dish', description: 'Traditional tang and crunch', isVeg: true },
-        { name: 'Buttermilk (Chaas)', category: 'Beverage', description: 'Spiced chilled yogurt drink', isVeg: true },
-      ],
-    },
-    {
-      date: today,
-      mealType: 'Snacks',
-      startTime: '16:30',
-      endTime: '18:00',
-      description: 'Evening tea-time snacks.',
-      items: [
-        { name: 'Veg Cutlet', category: 'Main Course', description: 'Crispy vegetable patties with mint chutney', isVeg: true },
-        { name: 'Masala Chai', category: 'Beverage', description: 'Cardamom & ginger spiced tea', isVeg: true },
-      ],
-    },
-    {
-      date: today,
-      mealType: 'Dinner',
-      startTime: '19:30',
-      endTime: '21:30',
-      description: 'Light and wholesome dinner.',
-      items: [
-        { name: 'Chana Masala', category: 'Main Course', description: 'Spiced chickpea curry', isVeg: true },
-        { name: 'Jeera Rice', category: 'Staples', description: 'Cumin-infused steamed rice', isVeg: true },
-        { name: 'Phulka Roti', category: 'Staples', description: 'Light wheat rotis', isVeg: true },
-        { name: 'Gulab Jamun', category: 'Dessert', description: 'Warm milk-solid dumplings in syrup', isVeg: true },
-      ],
-    },
-    {
-      date: tomorrow,
-      mealType: 'Lunch',
-      startTime: '12:00',
-      endTime: '14:30',
-      description: 'Tomorrow special lunch menu.',
-      items: [
-        { name: 'Rajma Masala', category: 'Main Course', description: 'Slow-cooked red kidney bean curry', isVeg: true },
-        { name: 'Aloo Gobhi Dry', category: 'Side Dish', description: 'Spiced cauliflower and potatoes', isVeg: true },
-        { name: 'Steamed Rice', category: 'Staples', description: 'Plain steamed rice', isVeg: true },
-        { name: 'Chapati', category: 'Staples', description: 'Fresh wheat chapati', isVeg: true },
-        { name: 'Boondi Raita', category: 'Salad & Extras', description: 'Chilled yogurt with crisp boondi', isVeg: true },
-      ],
-    },
-  ];
+  const menuSummary = await seedMenus(adminUser?._id, 8);
+  console.log(
+    `Ensured ${menuSummary.totalChecked} date menu slots (${menuSummary.inserted} newly inserted).`
+  );
 
-  for (const menu of sampleMenus) {
-    await Menu.findOneAndUpdate(
-      { date: menu.date, mealType: menu.mealType },
-      { $setOnInsert: { ...menu, createdBy: adminUser?._id } },
-      { upsert: true, returnDocument: 'after' }
-    );
-  }
-  console.log(`Ensured ${sampleMenus.length} sample menus.`);
+  const weeklySummary = await seedWeeklyMenus(adminUser?._id);
+  console.log(
+    `Ensured ${weeklySummary.totalSlots} ABES weekly menu slots (${weeklySummary.inserted} newly inserted).`
+  );
 
   // Seed 10 days of coupons idempotently
   const dates = getLastNDates(10);

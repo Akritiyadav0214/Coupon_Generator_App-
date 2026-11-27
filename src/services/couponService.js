@@ -1,8 +1,11 @@
 import api from './api';
+import { getTodayISO } from '../utils/formatters';
 
 export const couponService = {
   async getDashboard() {
-    const { data } = await api.get('/student/dashboard');
+    const { data } = await api.get('/student/dashboard', {
+      params: { date: getTodayISO() },
+    });
     return data.data;
   },
 

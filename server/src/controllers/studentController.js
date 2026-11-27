@@ -1,14 +1,32 @@
 const Coupon = require('../models/Coupon');
 const Menu = require('../models/Menu');
+const WeeklyMenu = require('../models/WeeklyMenu');
 const User = require('../models/User');
 const { AppError, asyncHandler } = require('../utils/errors');
-const { getTodayDateString } = require('../utils/dateUtils');
+const { getTodayDateString, getWeekdayFromDateString } = require('../utils/dateUtils');
 const { syncExpiredCoupons, generateDailyLunchCoupon } = require('../services/couponService');
 const { createNotification } = require('../services/notificationService');
 
+const HOSTEL_MENU_META = {
+  hostelName: "ABES Boys' Hostel",
+  caterer: 'Naina Caters (ABESEC & ABESBS, Ghaziabad)',
+  notes: [
+    'Salad (radish, carrot, beetroot, onion) includes a minimum of three vegetables.',
+    'Tea brewed with tulsi, elaichi & adrakh.',
+    'All vegetables cooked in mustard oil.',
+    'Seasonal fruits: Banana / papaya / apple / guava.',
+  ],
+};
+
+const MEAL_ORDER = { Breakfast: 1, Lunch: 2, Snacks: 3, Dinner: 4 };
+
 const getDashboard = asyncHandler(async (req, res) => {
   const studentId = req.user._id;
-  const today = getTodayDateString();
+  const today =
+    req.query.date && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)
+      ? req.query.date
+      : getTodayDateString();
+  const dayOfWeek = getWeekdayFromDateString(today);
 
   await syncExpiredCoupons({ student: studentId });
 
@@ -18,7 +36,8 @@ const getDashboard = asyncHandler(async (req, res) => {
     activeCoupons,
     todayCoupon,
     recentCoupons,
-    todayLunchMenu,
+    weeklyLunchMenu,
+    dateLunchMenu,
   ] = await Promise.all([
     Coupon.countDocuments({ student: studentId }),
     Coupon.countDocuments({ student: studentId, status: 'REDEEMED' }),
@@ -30,13 +49,17 @@ const getDashboard = asyncHandler(async (req, res) => {
       .sort({ generatedAt: -1 })
       .limit(5)
       .lean(),
+    WeeklyMenu.findOne({ dayOfWeek, mealType: 'Lunch', isPublished: true }).lean(),
     Menu.findOne({ date: today, mealType: 'Lunch' }).lean(),
   ]);
+
+  const todayLunchMenu = weeklyLunchMenu || dateLunchMenu || null;
 
   res.status(200).json({
     success: true,
     data: {
       today,
+      dayOfWeek,
       stats: {
         totalCoupons,
         redeemedCoupons,
@@ -195,16 +218,48 @@ const getMenu = asyncHandler(async (req, res) => {
     req.query.date && /^\d{4}-\d{2}-\d{2}$/.test(req.query.date)
       ? req.query.date
       : getTodayDateString();
+  const dayOfWeek = getWeekdayFromDateString(date);
 
-  const menus = await Menu.find({ date }).lean();
+  const weeklySlots = await WeeklyMenu.find({ dayOfWeek }).lean();
 
-  const mealOrder = { Breakfast: 1, Lunch: 2, Snacks: 3, Dinner: 4 };
-  menus.sort((a, b) => (mealOrder[a.mealType] || 9) - (mealOrder[b.mealType] || 9));
+  let menus;
+  let source = 'weekly';
+
+  if (weeklySlots.length > 0) {
+    weeklySlots.sort((a, b) => (MEAL_ORDER[a.mealType] || 9) - (MEAL_ORDER[b.mealType] || 9));
+    menus = weeklySlots.map((slot) => ({
+      _id: slot._id,
+      dayOfWeek: slot.dayOfWeek,
+      date,
+      mealType: slot.mealType,
+      mealName: slot.mealName || slot.mealType,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      description: slot.isPublished
+        ? slot.description
+        : slot.description || 'This meal is currently unpublished or off for today.',
+      isPublished: slot.isPublished,
+      items: slot.isPublished ? slot.items : [],
+    }));
+  } else {
+    source = 'date';
+    const dateMenus = await Menu.find({ date }).lean();
+    dateMenus.sort((a, b) => (MEAL_ORDER[a.mealType] || 9) - (MEAL_ORDER[b.mealType] || 9));
+    menus = dateMenus.map((m) => ({
+      ...m,
+      dayOfWeek,
+      mealName: m.mealType,
+      isPublished: true,
+    }));
+  }
 
   res.status(200).json({
     success: true,
     data: {
       date,
+      dayOfWeek,
+      source,
+      hostelInfo: HOSTEL_MENU_META,
       menus,
     },
   });

@@ -53,7 +53,7 @@ Traditional college mess facilities rely on paper lunch coupons or manual regist
 - **Personal Dashboard:** Personalized greeting, coupon KPIs (Total Generated, Redeemed, Active, Current Meal), one-click daily lunch coupon generation, and recent activity.
 - **Digital QR Lunch Pass:** Unique coupon ID (`MM-YYYYMMDD-XXXXXX`), QR code encoding only `{ couponId, token }` (no PII exposed), validity window, and print support.
 - **Coupon History:** Filter by `All`, `Active`, `Redeemed`, or `Expired`, search by Coupon ID, and inspect any historical pass.
-- **Today's Mess Menu:** View daily meals (`Breakfast`, `Lunch`, `Snacks`, `Dinner`) with serving hours, dietary indicators, and categories.
+- **Today's Mess Menu:** Dynamic Monday–Sunday **ABES Boys' Hostel** weekly schedule resolved automatically from any selected date, showing Breakfast, Lunch, Snacks, and Dinner cards with timings, active-meal highlighting, and dietary indicators.
 - **Profile & Settings:** Update academic profile (with locked Student ID), change password, and view account status.
 - **Notifications:** Real-time notification bell with unread badge, mark-as-read, and mark-all-as-read support.
 
@@ -63,7 +63,7 @@ Traditional college mess facilities rely on paper lunch coupons or manual regist
 - **One-Tap Atomic Redemption:** Confirms meal redemption, timestamps `redeemedAt`, records `redeemedBy`, notifies the student, and locks the coupon against reuse.
 - **Student Management:** Search by name, student ID, or email; filter by department or semester; inspect coupon history; activate or deactivate accounts.
 - **Coupon Management:** Search and filter all issued coupons by status, date, or student, with full audit inspection.
-- **Menu Management:** Create, edit, and delete daily menus across meal categories with automatic student notifications.
+- **Menu Management:** Weekly Monday-to-Sunday hostel menu editor to add/remove food items, edit meal timings, and publish or unpublish meals with automatic student notifications.
 - **Analytics:** Interactive Recharts reports across 7/14/30-day windows, department participation, and peak redemption hours.
 
 ---
@@ -207,11 +207,17 @@ node src/scripts/createAdmin.js --name "Mess Administrator" --email "admin@yourd
 *(You can also run `npm run admin:create` from the root or `server/` to be prompted interactively.)*
 
 ### 2. Seed Sample Data (Optional for Demo/Testing)
-Populate sample students, 10 days of historical coupons, today's full meal menu, and notifications:
+Populate sample students, 10 days of historical coupons, 8 days of varied daily meal menus (today + next 7 days), and notifications:
 
 ```bash
-# From repository root:
+# From repository root (full seed):
 npm run seed
+
+# Or seed only the 8-day varied menus (today + next 7 days):
+npm run seed:menus
+
+# Or seed the official ABES Boys' Hostel Monday–Sunday weekly menu:
+npm run seed:weekly-menu
 ```
 The seed script is idempotent and safe to run multiple times without creating duplicate students or menus.
 
@@ -296,10 +302,14 @@ npm run build
 - `PATCH /api/admin/students/:id/status` — Activate or deactivate a student account
 - `GET /api/admin/coupons` — Filterable coupon audit log
 - `GET /api/admin/analytics` — Multi-day series, department stats, hourly peak distribution
-- `GET /api/admin/menu` — List published menus
-- `POST /api/admin/menu` — Publish or upsert meal menu
+- `GET /api/admin/menu` — List published date menus
+- `POST /api/admin/menu` — Publish meal menu
 - `PUT /api/admin/menu/:id` — Update existing menu
 - `DELETE /api/admin/menu/:id` — Remove menu
+- `GET /api/admin/weekly-menu` — List complete Monday–Sunday ABES weekly hostel menu
+- `PUT /api/admin/weekly-menu/slot` — Upsert a weekday meal slot
+- `PUT /api/admin/weekly-menu/:id` — Update items, timings, or publish status for a weekly meal
+- `PATCH /api/admin/weekly-menu/:id/publish` — Publish or unpublish a weekly meal slot
 
 ### Notifications
 - `GET /api/notifications` — List user notifications and unread count

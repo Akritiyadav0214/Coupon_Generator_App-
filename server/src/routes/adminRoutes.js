@@ -63,4 +63,52 @@ router.delete(
   adminController.deleteMenu
 );
 
+// Weekly Hostel Menu Routes (Monday–Sunday)
+router.get('/weekly-menu', adminController.getWeeklyMenus);
+
+router.put(
+  '/weekly-menu/slot',
+  [
+    body('dayOfWeek')
+      .isIn(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])
+      .withMessage('Invalid weekday'),
+    body('mealType')
+      .isIn(['Breakfast', 'Lunch', 'Snacks', 'Dinner'])
+      .withMessage('Invalid meal type'),
+    body('startTime').trim().notEmpty().withMessage('Start time is required'),
+    body('endTime').trim().notEmpty().withMessage('End time is required'),
+    body('items').isArray().withMessage('Items must be an array'),
+    body('items.*.name').trim().notEmpty().withMessage('Each food item must have a name'),
+  ],
+  validate,
+  adminController.upsertWeeklyMenuSlot
+);
+
+router.put(
+  '/weekly-menu/:id',
+  [
+    param('id').isMongoId().withMessage('Invalid weekly menu ID'),
+    body('startTime').optional().trim().notEmpty().withMessage('Start time cannot be empty'),
+    body('endTime').optional().trim().notEmpty().withMessage('End time cannot be empty'),
+    body('items').optional().isArray().withMessage('Items must be an array'),
+    body('items.*.name')
+      .optional()
+      .trim()
+      .notEmpty()
+      .withMessage('Each food item must have a name'),
+  ],
+  validate,
+  adminController.updateWeeklyMenu
+);
+
+router.patch(
+  '/weekly-menu/:id/publish',
+  [
+    param('id').isMongoId().withMessage('Invalid weekly menu ID'),
+    body('isPublished').optional().isBoolean().withMessage('isPublished must be a boolean'),
+  ],
+  validate,
+  adminController.toggleWeeklyMenuPublish
+);
+
 module.exports = router;

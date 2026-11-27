@@ -8,6 +8,28 @@ export const menuService = {
     return data.data;
   },
 
+  async getWeeklyMenus(dayOfWeek) {
+    const { data } = await api.get('/admin/weekly-menu', {
+      params: dayOfWeek ? { dayOfWeek } : {},
+    });
+    return data.data;
+  },
+
+  async updateWeeklyMenu(id, payload) {
+    const { data } = await api.put(`/admin/weekly-menu/${id}`, payload);
+    return data;
+  },
+
+  async upsertWeeklySlot(payload) {
+    const { data } = await api.put('/admin/weekly-menu/slot', payload);
+    return data;
+  },
+
+  async toggleWeeklyPublish(id, isPublished) {
+    const { data } = await api.patch(`/admin/weekly-menu/${id}/publish`, { isPublished });
+    return data;
+  },
+
   async getAdminMenus(date) {
     const { data } = await api.get('/admin/menu', {
       params: date ? { date } : {},

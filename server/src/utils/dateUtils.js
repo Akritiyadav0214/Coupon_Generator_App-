@@ -38,9 +38,45 @@ function getLastNDates(days = 7) {
   return result;
 }
 
+/**
+ * Returns array of N date strings (YYYY-MM-DD) starting from today through today + (days - 1).
+ */
+function getNextNDates(days = 8) {
+  const result = [];
+  const base = new Date();
+  for (let i = 0; i < days; i += 1) {
+    const d = new Date(base);
+    d.setDate(base.getDate() + i);
+    result.push(getTodayDateString(d));
+  }
+  return result;
+}
+
+const WEEKDAY_NAMES_UTC = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+];
+
+/**
+ * Resolves the exact weekday name (Monday..Sunday) for a YYYY-MM-DD string
+ * using UTC calendar arithmetic so server timezone never shifts the day.
+ */
+function getWeekdayFromDateString(dateStr) {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const utcDate = new Date(Date.UTC(year, month - 1, day));
+  return WEEKDAY_NAMES_UTC[utcDate.getUTCDay()];
+}
+
 module.exports = {
   getTodayDateString,
   getEndOfDayDate,
   getCompactDateString,
   getLastNDates,
+  getNextNDates,
+  getWeekdayFromDateString,
 };

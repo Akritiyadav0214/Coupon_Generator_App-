@@ -1,0 +1,42 @@
+{
+  "name": "messmate",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n CLIENT,SERVER -c green,cyan \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:client": "vite",
+    "dev:server": "npm --prefix server run dev",
+    "start:server": "npm --prefix server run start",
+    "seed": "npm --prefix server run seed",
+    "admin:create": "npm --prefix server run admin:create",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.5",
+    "axios": "^1.21.1",
+    "jsqr": "^1.4.0",
+    "lucide-react": "^1.79.0",
+    "qrcode.react": "^4.2.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-hot-toast": "^2.6.1",
+    "react-router-dom": "^7.18.7",
+    "recharts": "^3.11.1",
+    "tailwindcss": "^4.3.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "concurrently": "^10.0.7",
+    "eslint": "^10.14.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.13.0",
+    "vite": "^8.3.6"
+  }
+}

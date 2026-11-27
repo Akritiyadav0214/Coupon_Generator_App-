@@ -9,8 +9,8 @@ Backend API: https://coupon-generator-app.onrender.com
 ## Demo Credentials
 
 ### Admin Account
-- Username: YOUR_ADMIN_EMAIL
-- Password: YOUR_ADMIN_PASSWORD
+- Username: akritiyadav0214@gmail.com
+- Password: akritiyadav
 
 ### Student Account
 - Username: YOUR_STUDENT_EMAIL

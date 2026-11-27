@@ -15,6 +15,7 @@ import {
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import NotificationDropdown from '../components/common/NotificationDropdown';
+import Footer from '../components/common/Footer';
 import { getInitials } from '../utils/formatters';
 
 const ADMIN_NAV = [
@@ -132,8 +133,11 @@ export default function AdminLayout() {
             >
               <MenuIcon className="h-4 w-4" />
             </button>
-            <div className="hidden sm:block">
-              <p className="text-xs font-medium text-slate-500">
+            <div className="flex items-center gap-2.5">
+              <span className="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold tracking-tight text-[#064E3B]">
+                ABESEC Ghaziabad
+              </span>
+              <p className="hidden text-xs font-medium text-slate-500 md:block">
                 Mess Operations &amp; Verification Console
               </p>
             </div>
@@ -154,6 +158,7 @@ export default function AdminLayout() {
         <main className="mx-auto w-full max-w-7xl flex-1 p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
+        <Footer />
       </div>
     </div>
   );

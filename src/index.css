@@ -1,33 +1,221 @@
+/* Fonts (remove this line if you already load them in index.html) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
 @import "tailwindcss";
 
-@layer base {
-  :root {
-    --color-primary: #059669;
-    --color-primary-dark: #064E3B;
-    --color-bg: #F8FAFC;
-    --color-card: #FFFFFF;
-    --color-border: #E2E8F0;
-  }
+/* ==========================================================
+   Theme tokens (Tailwind v4 turns these into utilities:
+   bg-primary, text-primary-dark, shadow-soft, animate-rise…)
+   ========================================================== */
+@theme {
+  --color-primary: #059669;
+  --color-primary-dark: #064E3B;
+  --color-primary-light: #D1FAE5;
+  --color-primary-soft: #ECFDF5;
+  --color-deal: #F59E0B;      /* warm "savings" highlight for prices/badges */
+  --color-bg: #F8FAFC;
+  --color-card: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-ink: #0F172A;
 
-  body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: #F8FAFC;
-    color: #0F172A;
-  }
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  h1, h2, h3, .font-display {
-    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
-  }
+  --shadow-soft: 0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -8px rgb(15 23 42 / 0.10);
+  --shadow-lift: 0 2px 4px rgb(15 23 42 / 0.05), 0 18px 36px -12px rgb(5 150 105 / 0.35);
 
-  .font-mono-code {
-    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-rise: rise 0.7s var(--ease-out-expo) both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes shimmer {
+    from { background-position: 200% 0; }
+    to   { background-position: -200% 0; }
   }
 }
 
-/* Smooth custom scrollbar */
+/* ==========================================================
+   Base
+   ========================================================== */
+@layer base {
+  :root {
+    color-scheme: light;
+
+    /* Shared with App.css, so both files use one palette.
+       You can now delete the token block at the top of App.css. */
+    --accent: var(--color-primary);
+    --accent-bg: color-mix(in srgb, var(--color-primary) 10%, transparent);
+    --accent-border: color-mix(in srgb, var(--color-primary) 55%, transparent);
+    --glow: #2DD4BF;
+    --border: var(--color-border);
+    --text-h: var(--color-ink);
+    --social-bg: color-mix(in srgb, var(--color-primary) 7%, transparent);
+    --shadow: var(--shadow-lift);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: var(--color-ink);
+    background-color: var(--color-bg);
+    /* a faint emerald light from the top edge, no heavy decoration */
+    background-image: radial-gradient(
+      ellipse 80% 40% at 50% -10%,
+      color-mix(in srgb, var(--color-primary) 10%, transparent),
+      transparent 70%
+    );
+    background-repeat: no-repeat;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.025em;
+    line-height: 1.12;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  .font-mono-code {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+
+  ::selection {
+    background: var(--color-primary);
+    color: #fff;
+  }
+
+  /* One consistent, visible keyboard focus ring */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  button, [role="button"], a {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* ==========================================================
+   Components: built around the coupon idea
+   ========================================================== */
+@layer components {
+  /* Ticket-style card: semicircle notches cut from both sides.
+     Use --notch-y to move them (default sits at 70% height).
+     Put the shadow on a wrapper with drop-shadow, since the
+     mask clips box-shadow:  <div class="drop-shadow-lg"><div class="coupon-ticket">…  */
+  .coupon-ticket {
+    --notch-r: 12px;
+    --notch-y: 70%;
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    -webkit-mask:
+      radial-gradient(circle var(--notch-r) at 0 var(--notch-y), #0000 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle var(--notch-r) at 100% var(--notch-y), #0000 98%, #000) right / 51% 100% no-repeat;
+            mask:
+      radial-gradient(circle var(--notch-r) at 0 var(--notch-y), #0000 98%, #000) left / 51% 100% no-repeat,
+      radial-gradient(circle var(--notch-r) at 100% var(--notch-y), #0000 98%, #000) right / 51% 100% no-repeat;
+  }
+
+  /* Dashed tear line between ticket sections */
+  .coupon-tear {
+    border: 0;
+    border-top: 2px dashed var(--color-border);
+    margin: 0;
+  }
+
+  /* Coupon code pill */
+  .coupon-code {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--color-primary-dark);
+    background: var(--color-primary-soft);
+    border: 1.5px dashed color-mix(in srgb, var(--color-primary) 60%, transparent);
+    border-radius: 10px;
+    padding: 0.5rem 0.9rem;
+    user-select: all;
+  }
+
+  /* Card that lifts on hover, only for clickable cards */
+  .card-lift {
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-soft);
+    transition:
+      transform 0.3s var(--ease-out-expo),
+      box-shadow 0.3s var(--ease-out-expo),
+      border-color 0.3s var(--ease-out-expo);
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lift);
+      border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
+    }
+  }
+
+  /* Primary action button */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.4rem;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(180deg, #10B981, var(--color-primary));
+    border-radius: 999px;
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.25) inset,
+      0 8px 18px -8px rgb(5 150 105 / 0.7);
+    transition: transform 0.2s var(--ease-out-expo), box-shadow 0.3s var(--ease-out-expo);
+
+    &:hover  { transform: translateY(-2px); box-shadow: 0 1px 0 rgb(255 255 255 / 0.25) inset, 0 14px 24px -8px rgb(5 150 105 / 0.75); }
+    &:active { transform: translateY(1px) scale(0.98); }
+  }
+
+  /* Loading placeholder */
+  .skeleton {
+    background: linear-gradient(90deg, #E2E8F0 25%, #F1F5F9 37%, #E2E8F0 63%);
+    background-size: 200% 100%;
+    border-radius: 8px;
+    animation: var(--animate-shimmer);
+  }
+}
+
+/* ==========================================================
+   Scrollbar
+   ========================================================== */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 transparent;
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -37,19 +225,46 @@
 ::-webkit-scrollbar-thumb {
   background: #CBD5E1;
   border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: var(--color-primary);
+  background-clip: content-box;
+}
+
+/* ==========================================================
+   Motion preferences
+   ========================================================== */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================================
+   Print: only the coupon, with colors preserved
+   ========================================================== */
+@page {
+  margin: 12mm;
 }
 
 @media print {
+  body {
+    background: #fff !important;
+  }
   body * {
     visibility: hidden;
   }
   .printable-coupon,
   .printable-coupon * {
     visibility: visible;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   .printable-coupon {
     position: absolute;
@@ -57,5 +272,7 @@
     top: 24px;
     transform: translateX(-50%);
     box-shadow: none !important;
+    filter: none !important;
+    animation: none !important;
   }
 }

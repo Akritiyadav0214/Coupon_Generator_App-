@@ -1,9 +1,11 @@
 import axios from 'axios';
 
 const TOKEN_KEY = 'messmate_token';
+const RAW_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const BASE_API_URL = RAW_API_URL.replace(/\/+$/, '');
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: BASE_API_URL,
   withCredentials: true,
   timeout: 15000,
   headers: {

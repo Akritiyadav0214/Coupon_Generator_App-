@@ -1,24 +1,94 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
+/* ==========================================================
+   Design tokens
+   (If index.css already defines these, delete this block
+   or keep whichever file loads last.)
+   ========================================================== */
+:root {
+  --ink: #0f1230;
+  --paper: #f7f8fc;
+  --accent: #5b3df5;
+  --accent-bg: color-mix(in srgb, var(--accent) 10%, transparent);
+  --accent-border: color-mix(in srgb, var(--accent) 55%, transparent);
+  --glow: #22d3ee;
+  --border: #e1e4f0;
+  --text-h: var(--ink);
+  --social-bg: color-mix(in srgb, var(--accent) 7%, transparent);
+  --shadow: 0 12px 28px -12px color-mix(in srgb, var(--accent) 55%, transparent);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
 
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #eef0ff;
+    --paper: #0b0e24;
+    --accent: #8b7bff;
+    --glow: #38e0ff;
+    --border: #232850;
+    --social-bg: rgba(255, 255, 255, 0.05);
   }
 }
 
+/* ==========================================================
+   Counter button: tactile, pressable
+   ========================================================== */
+.counter {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 10px 22px;
+  border-radius: 999px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 2px solid transparent;
+  cursor: pointer;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.4) inset;
+  transition:
+    border-color 0.3s var(--ease),
+    transform 0.2s var(--ease),
+    box-shadow 0.3s var(--ease);
+
+  &:hover {
+    border-color: var(--accent-border);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+  }
+  &:active {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: none;
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+}
+
+/* ==========================================================
+   Hero: the one memorable moment
+   A soft light source sits behind the logo stack, which
+   rises into place on load and then drifts gently.
+   ========================================================== */
 .hero {
   position: relative;
+  isolation: isolate;
+  animation:
+    hero-in 0.9s var(--ease) both,
+    hero-float 7s ease-in-out 0.9s infinite;
+
+  /* the glow */
+  &::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: -30px -50px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 35% 40%, var(--glow), transparent 55%),
+      radial-gradient(circle at 70% 60%, var(--accent), transparent 60%);
+    filter: blur(44px);
+    opacity: 0.45;
+    animation: glow-breathe 5s ease-in-out infinite;
+  }
 
   .base,
   .framework,
@@ -31,6 +101,7 @@
     width: 170px;
     position: relative;
     z-index: 0;
+    filter: drop-shadow(0 18px 24px color-mix(in srgb, var(--accent) 35%, transparent));
   }
 
   .framework,
@@ -56,13 +127,68 @@
   }
 }
 
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    translate: 0 28px;
+    scale: 0.94;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+@keyframes hero-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -10px;
+  }
+}
+
+@keyframes glow-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+    scale: 0.96;
+  }
+  50% {
+    opacity: 0.6;
+    scale: 1.05;
+  }
+}
+
+/* ==========================================================
+   Page layout
+   ========================================================== */
 #center {
   display: flex;
   flex-direction: column;
-  gap: 25px;
+  gap: 28px;
   place-content: center;
   place-items: center;
   flex-grow: 1;
+
+  h1 {
+    margin: 0;
+    font-size: clamp(2.2rem, 5vw + 1rem, 3.75rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: var(--text-h);
+    text-wrap: balance;
+  }
+
+  p {
+    margin: 0;
+    max-width: 52ch;
+    line-height: 1.6;
+    text-wrap: pretty;
+  }
 
   @media (max-width: 1024px) {
     padding: 32px 20px 24px;
@@ -77,16 +203,24 @@
 
   & > div {
     flex: 1 1 0;
-    padding: 32px;
+    padding: 36px;
     @media (max-width: 1024px) {
       padding: 24px 20px;
     }
   }
 
+  h2 {
+    margin: 0 0 8px;
+    font-size: 1.25rem;
+    letter-spacing: -0.01em;
+    color: var(--text-h);
+  }
+
   .icon {
     margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
+    color: var(--accent);
   }
 
   @media (max-width: 1024px) {
@@ -108,7 +242,7 @@
   list-style: none;
   padding: 0;
   display: flex;
-  gap: 8px;
+  gap: 10px;
   margin: 32px 0 0;
 
   .logo {
@@ -118,17 +252,28 @@
   a {
     color: var(--text-h);
     font-size: 16px;
-    border-radius: 6px;
+    font-weight: 500;
+    border-radius: 999px;
     background: var(--social-bg);
+    border: 1px solid transparent;
     display: flex;
-    padding: 6px 12px;
+    padding: 8px 16px;
     align-items: center;
     gap: 8px;
     text-decoration: none;
-    transition: box-shadow 0.3s;
+    transition:
+      box-shadow 0.3s var(--ease),
+      transform 0.2s var(--ease),
+      border-color 0.3s var(--ease);
 
     &:hover {
       box-shadow: var(--shadow);
+      transform: translateY(-2px);
+      border-color: var(--accent-border);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
     }
     .button-icon {
       height: 18px;
@@ -175,10 +320,24 @@
 
   &::before {
     left: 0;
-    border-left-color: var(--border);
+    border-left-color: var(--accent);
   }
   &::after {
     right: 0;
-    border-right-color: var(--border);
+    border-right-color: var(--accent);
+  }
+}
+
+/* ==========================================================
+   Accessibility: respect reduced-motion preference
+   ========================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .hero,
+  .hero::before {
+    animation: none;
+  }
+  .counter,
+  #next-steps ul a {
+    transition: none;
   }
 }

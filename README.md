@@ -13,7 +13,7 @@ Backend API: https://coupon-generator-app.onrender.com
 - Password: akritiyadav
 
 ### Student Account
-- Username: YOUR_STUDENT_EMAIL
+- Username: 
 - Password: YOUR_STUDENT_PASSWORD
 
 ## Project Overview
